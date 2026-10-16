@@ -11,10 +11,26 @@ class AlmacenLocal {
     final guardadas = await prefs.getString(clave);
     final texto = guardadas ??
         await rootBundle.loadString('assets/data/incidencias.json');
-    final lista = jsonDecode(texto) as List<dynamic>;
-    return lista
-        .map((item) => Incidencia.desdeJson(item as Map<String, dynamic>))
-        .toList();
+    final decoded = jsonDecode(texto);
+    final dynamic lista = switch (decoded) {
+      List<dynamic> registros => registros,
+      Map<String, dynamic> datosAnteriores => datosAnteriores['incidencias'],
+      _ => null,
+    };
+    if (lista is! List<dynamic>) {
+      throw const FormatException(
+        'Los datos de incidencias deben ser una lista o incluir "incidencias".',
+      );
+    }
+
+    return lista.map((item) {
+      if (item is! Map<String, dynamic>) {
+        throw const FormatException(
+          'Cada registro de incidencia debe ser un objeto.',
+        );
+      }
+      return Incidencia.desdeJson(item);
+    }).toList();
   }
 
   Future<void> guardar(List<Incidencia> lista) async {
